@@ -1,0 +1,16 @@
+{
+  "name": "Colibridge",
+  "short_name": "Colibridge",
+  "description": "Vos colis entre la France et le Maghreb, avec des voyageurs qui font déjà la route.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef4f3",
+  "theme_color": "#0b7a5e",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

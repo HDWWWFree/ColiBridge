@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Colibridge — vos colis entre la France et le Maghreb</title>
+  <meta name="description" content="Envoyez ou transportez des affaires personnelles entre la France et le Maghreb, avec des voyageurs qui font déjà la route.">
+  <meta name="theme-color" content="#0b7a5e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script>try{var t=localStorage.getItem('cb-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/" aria-label="Colibridge, accueil">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <rect width="48" height="48" rx="12" fill="#0b7a5e"/>
+        <path d="M8 33 Q24 8 40 33" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/>
+        <circle cx="8" cy="33" r="4" fill="#fff"/><circle cx="40" cy="33" r="4" fill="#ff7aa5"/>
+      </svg>
+      <span>Colibridge</span>
+    </a>
+    <div class="top-actions">
+      <button class="icon-btn" data-act="toggle-theme" aria-label="Changer de thème" title="Thème clair / sombre">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
+      <a id="user-link" class="pill-link" href="#/auth">Connexion</a>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1"><p class="muted">Chargement…</p></main>
+
+  <nav class="tabbar" aria-label="Navigation principale">
+    <a href="#/" data-tab="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>Trajets</a>
+    <a href="#/publish" data-tab="publish"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg>Publier</a>
+    <a href="#/mine" data-tab="mine"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>Mes envois</a>
+    <a href="#/mytrips" data-tab="mytrips"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17q9-14 18 0"/><circle cx="3" cy="17" r="1.5"/><circle cx="21" cy="17" r="1.5"/></svg>Mes trajets</a>
+    <a href="#/profile" data-tab="profile"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>Profil</a>
+  </nav>
+
+  <dialog id="modal" aria-label="Fenêtre"></dialog>
+  <div id="toasts" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="charter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
