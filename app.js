@@ -65,7 +65,7 @@
   /* ------------------------------------------------------------------ */
   /* État et utilitaires                                                */
   /* ------------------------------------------------------------------ */
-  const S = { session: null, profile: null, traveler: null, next: null, authTab: 'login', filters: { dir: '', country: '', city: '', date: '', mode: '' }, chatChannel: null, seen: new Set() };
+  const S = { session: null, profile: null, traveler: null, next: null, authTab: 'login', filters: { from: '', to: '', city: '', date: '', mode: '' }, chatChannel: null, seen: new Set() };
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -254,11 +254,10 @@
       <details class="filter-wrap" ${Object.values(f).some(Boolean) || matchMedia('(min-width: 720px)').matches ? 'open' : ''}>
       <summary>Filtrer les trajets</summary>
       <form class="filters" data-form="search">
-        <div><label for="f-dir">Sens</label><select id="f-dir" name="dir">
-          <option value="">Tous</option><option value="out" ${f.dir === 'out' ? 'selected' : ''}>Départ de France</option>
-          <option value="back" ${f.dir === 'back' ? 'selected' : ''}>Arrivée en France</option></select></div>
-        <div><label for="f-country">Pays</label><select id="f-country" name="country">
-          <option value="">Tous</option>${countryOptions(f.country)}</select></div>
+        <div><label for="f-from">Pays de départ</label><select id="f-from" name="from">
+          <option value="">Tous</option>${opts(COUNTRIES, f.from)}</select></div>
+        <div><label for="f-to">Pays d’arrivée</label><select id="f-to" name="to">
+          <option value="">Tous</option>${opts(COUNTRIES, f.to)}</select></div>
         <div><label for="f-mode">Transport</label><select id="f-mode" name="mode"><option value="">Tous</option>${opts(MODES, f.mode)}</select></div>
         <div><label for="f-date">À partir du</label><input id="f-date" type="date" name="date" value="${esc(f.date)}"></div>
         <div class="wide"><label for="f-city">Ville</label><input id="f-city" name="city" list="dl-all" placeholder="Marseille, Alger…" value="${esc(f.city)}" autocomplete="off"></div>
@@ -276,14 +275,13 @@
     let q = sb.from('trips')
       .select('*, driver:profiles!driver_id(id, full_name, is_verified_driver, deliveries_count)')
       .eq('status', 'open').gte('departure_at', new Date().toISOString()).order('departure_at').limit(100);
-    if (f.dir === 'out') q = q.eq('origin_country', 'FR');
-    if (f.dir === 'back') q = q.eq('dest_country', 'FR');
+    if (f.from) q = q.eq('origin_country', f.from);
+    if (f.to) q = q.eq('dest_country', f.to);
     if (f.mode) q = q.eq('transport_mode', f.mode);
     if (f.date) q = q.gte('departure_at', new Date(f.date + 'T00:00').toISOString());
     const { data, error } = await q;
     if (error) { box.innerHTML = errorBox(error); return; }
     let trips = data || [];
-    if (f.country) trips = trips.filter((t) => t.origin_country === f.country || t.dest_country === f.country);
     if (f.city) { const c = norm(f.city); trips = trips.filter((t) => norm(t.origin_city).includes(c) || norm(t.dest_city).includes(c)); }
     if (!trips.length) {
       box.innerHTML = `<div class="card empty"><h3>Aucun trajet pour ces critères</h3>
@@ -373,20 +371,20 @@
   async function viewPublish() {
     if (!requireAuth()) return;
     const tp = S.traveler;
-    const dl = `<datalist id="dl-fr">${cityOptions(citiesOf(HOME))}</datalist><datalist id="dl-ext"></datalist>`;
+    const dl = '<datalist id="dl-o"></datalist><datalist id="dl-d"></datalist>';
     setMain(`
       <h1>Publier un trajet</h1>
       <p class="muted">Vous voyagez bientôt depuis ou vers la France ? Proposez la place qu’il vous reste.</p>
       ${!tp ? `<div class="notice warn">Complétez d’abord votre <a href="#/profile">profil voyageur</a> (pièce d’identité, et plaque + permis si vous roulez). Vous pourrez ensuite publier.</div>` : ''}
       <form class="card" data-form="publish">
-        <div class="two dates">
-          <div class="field"><label for="p-mode">Transport</label><select id="p-mode" name="transport_mode" required>${opts(MODES)}</select></div>
-          <div class="field"><label for="p-dir">Sens</label><select id="p-dir" name="dir"><option value="out">Départ de France</option><option value="back">Arrivée en France</option></select></div>
-        </div>
-        <div class="field" id="p-cwrap"><label for="p-country" id="p-cl">Pays de destination</label><select id="p-country" name="country">${countryOptions()}</select></div>
+        <div class="field"><label for="p-mode">Transport</label><select id="p-mode" name="transport_mode" required>${opts(MODES)}</select></div>
         <div class="two">
-          <div class="field"><label for="p-oc" id="p-oc-l">Ville de départ</label><input id="p-oc" name="origin_city" list="dl-fr" required autocomplete="off"></div>
-          <div class="field"><label for="p-dc" id="p-dc-l">Ville d’arrivée</label><input id="p-dc" name="dest_city" list="dl-ext" required autocomplete="off"></div>
+          <div class="field"><label for="p-from">Pays de départ</label><select id="p-from" name="from" required>${opts(COUNTRIES, HOME)}</select></div>
+          <div class="field"><label for="p-to">Pays d’arrivée</label><select id="p-to" name="to" required>${opts(COUNTRIES, foreign()[0]?.code)}</select></div>
+        </div>
+        <div class="two">
+          <div class="field"><label for="p-oc" id="p-oc-l">Ville de départ</label><input id="p-oc" name="origin_city" list="dl-o" required autocomplete="off"></div>
+          <div class="field"><label for="p-dc" id="p-dc-l">Ville d’arrivée</label><input id="p-dc" name="dest_city" list="dl-d" required autocomplete="off"></div>
         </div>
         <div class="two">
           <div class="field"><label for="p-op">Point de rendez-vous au départ</label><input id="p-op" name="origin_point" placeholder="Gare, port, aéroport…"></div>
@@ -412,13 +410,10 @@
   }
 
   function syncPublishDir() {
-    const dir = document.getElementById('p-dir');
-    if (!dir) return;
-    const out = dir.value === 'out';
-    document.getElementById('dl-ext').innerHTML = cityOptions(citiesOf(document.getElementById('p-country').value));
-    document.getElementById('p-oc').setAttribute('list', out ? 'dl-fr' : 'dl-ext');
-    document.getElementById('p-dc').setAttribute('list', out ? 'dl-ext' : 'dl-fr');
-    document.getElementById('p-cl').textContent = out ? 'Pays de destination' : 'Pays de départ';
+    const from = document.getElementById('p-from'), to = document.getElementById('p-to');
+    if (!from || !to) return;
+    document.getElementById('dl-o').innerHTML = cityOptions(citiesOf(from.value));
+    document.getElementById('dl-d').innerHTML = cityOptions(citiesOf(to.value));
   }
 
   /* ------------------------------------------------------------------ */
@@ -707,7 +702,7 @@
       if (error) { toast(friendly(error), 'error'); route(); return; }
       toast('Statut du trajet mis à jour');
     }
-    if (el.id === 'p-dir' || el.id === 'p-country') syncPublishDir();
+    if (el.id === 'p-from' || el.id === 'p-to') syncPublishDir();
   });
 
   document.addEventListener('input', (e) => {
@@ -725,7 +720,7 @@
   const forms = {
     search(f) {
       const fd = new FormData(f);
-      S.filters = { dir: fd.get('dir'), country: fd.get('country'), city: fd.get('city').trim(), date: fd.get('date'), mode: fd.get('mode') };
+      S.filters = { from: fd.get('from'), to: fd.get('to'), city: fd.get('city').trim(), date: fd.get('date'), mode: fd.get('mode') };
       const box = document.getElementById('results');
       if (box) box.innerHTML = skeleton();
       return loadResults();
@@ -763,9 +758,10 @@
 
     async publish(f) {
       const fd = new FormData(f);
-      const out = fd.get('dir') === 'out';
-      const mg = fd.get('country');
+      const from = fd.get('from'), to = fd.get('to');
       const mode = fd.get('transport_mode');
+      if (from === to) { toast('Le pays de départ et le pays d’arrivée doivent être différents.', 'error'); return; }
+      if (from !== HOME && to !== HOME) { toast('Pour l’instant, un trajet part de France ou arrive en France.', 'error'); return; }
       if (ROAD.includes(mode) && !(S.traveler?.plate && S.traveler?.license_number)) {
         toast('Pour un trajet en voiture, fourgon ou camionnette, renseignez plaque et permis dans votre profil voyageur.', 'error');
         return;
@@ -774,7 +770,7 @@
       const arrRaw = fd.get('arrival_at');
       const { error } = await sb.from('trips').insert({
         driver_id: uid(), transport_mode: mode,
-        origin_country: out ? 'FR' : mg, dest_country: out ? mg : 'FR',
+        origin_country: from, dest_country: to,
         origin_city: fd.get('origin_city').trim(), dest_city: fd.get('dest_city').trim(),
         origin_point: fd.get('origin_point').trim() || null, dest_point: fd.get('dest_point').trim() || null,
         departure_at: dep.toISOString(), arrival_at: arrRaw ? new Date(arrRaw).toISOString() : null,
