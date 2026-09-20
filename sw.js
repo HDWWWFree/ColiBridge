@@ -1,5 +1,5 @@
 // Service worker Colibridge : réseau d'abord, cache en secours (l'appli reste ouvrable hors ligne).
-const CACHE = 'colibridge-v1';
+const CACHE = 'colibridge-v4';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'charter.js', 'manifest.json', 'icons/icon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -20,7 +20,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Supabase, CDN, polices : jamais interceptés
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy));
