@@ -17,7 +17,15 @@
   /* ------------------------------------------------------------------ */
   /* Données de référence                                               */
   /* ------------------------------------------------------------------ */
-  const COUNTRIES = { FR: 'France', DZ: 'Algérie', MA: 'Maroc', TN: 'Tunisie' };
+  // Pays : chargés depuis la table `countries` de Supabase (ajouter un pays = une ligne SQL, aucun code).
+  // Liste de secours si la table n'est pas lisible.
+  const HOME = 'FR';
+  let COUNTRY_LIST = [{ code: 'FR', name: 'France', currency: 'EUR' }, { code: 'DZ', name: 'Algérie', currency: 'DZD' }, { code: 'MA', name: 'Maroc', currency: 'MAD' }, { code: 'TN', name: 'Tunisie', currency: 'TND' }];
+  let COUNTRIES = Object.fromEntries(COUNTRY_LIST.map((c) => [c.code, c.name]));
+  const foreign = () => COUNTRY_LIST.filter((c) => c.code !== HOME);
+  const countryOptions = (sel = '') => foreign().map((c) => `<option value="${esc(c.code)}" ${c.code === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  const countryName = (code) => COUNTRIES[code] || code;
+  const currencies = () => [...new Set(['EUR', ...COUNTRY_LIST.map((c) => c.currency).filter(Boolean)])];
   const MODES = {
     voiture: { icon: '🚗', label: 'Voiture' },
     fourgon: { icon: '🚐', label: 'Fourgon' },
@@ -44,8 +52,15 @@
     contenu_illicite: 'Contenu illicite ou interdit', colis_suspect: 'Colis suspect',
     comportement: 'Comportement inapproprié', fraude: 'Fraude ou arnaque', autre: 'Autre'
   };
-  const CITIES_FR = ['Paris', 'Marseille', 'Lyon', 'Lille', 'Toulouse', 'Nice', 'Bordeaux', 'Strasbourg', 'Nantes', 'Montpellier', 'Sète', 'Perpignan', 'Grenoble', 'Saint-Étienne', 'Rennes'];
-  const CITIES_MG = ['Alger', 'Oran', 'Constantine', 'Annaba', 'Béjaïa', 'Tizi Ouzou', 'Sétif', 'Tlemcen', 'Blida', 'Batna', 'Casablanca', 'Rabat', 'Tanger', 'Tunis', 'Sfax'];
+  // Suggestions de villes par pays (saisie libre possible ; un nouveau pays n'a pas besoin d'y figurer).
+  const CITIES = {
+    FR: ['Paris', 'Marseille', 'Lyon', 'Lille', 'Toulouse', 'Nice', 'Bordeaux', 'Strasbourg', 'Nantes', 'Montpellier', 'Sète', 'Perpignan', 'Grenoble', 'Saint-Étienne', 'Rennes'],
+    DZ: ['Alger', 'Oran', 'Constantine', 'Annaba', 'Béjaïa', 'Tizi Ouzou', 'Sétif', 'Tlemcen', 'Blida', 'Batna'],
+    MA: ['Casablanca', 'Rabat', 'Tanger', 'Marrakech', 'Fès', 'Agadir'],
+    TN: ['Tunis', 'Sfax', 'Sousse', 'Bizerte']
+  };
+  const citiesOf = (code) => CITIES[code] || [];
+  const cityOptions = (list) => list.map((c) => `<option value="${esc(c)}">`).join('');
 
   /* ------------------------------------------------------------------ */
   /* État et utilitaires                                                */
@@ -111,7 +126,7 @@
   /* Le trajet dessiné comme un pont entre deux rives */
   function routeBlock(t, detailed = false) {
     const m = MODES[t.transport_mode] || MODES.voiture;
-    const sub = (country, point) => `${COUNTRIES[country] || ''}${detailed && point ? ` — ${esc(point)}` : ''}`;
+    const sub = (country, point) => `${esc(countryName(country))}${detailed && point ? ` — ${esc(point)}` : ''}`;
     return `<div class="route">
       <div class="stop"><b>${esc(t.origin_city)}</b><small>${sub(t.origin_country, t.origin_point)}</small></div>
       <div class="arcwrap"><svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
@@ -233,21 +248,22 @@
     setMain(`
       <section class="hero">
         <h1>Vos colis voyagent avec ceux qui font déjà la route</h1>
-        <p>Voyageurs en voiture, fourgon, avion, bus ou bateau entre la France et le Maghreb : trouvez de la place, réservez, notez après livraison.</p>
+        <p>Voyageurs en voiture, fourgon, avion, bus ou bateau, depuis et vers la France : trouvez de la place, réservez, notez après livraison.</p>
+        <p><small>Pays desservis : ${esc(foreign().map((c) => c.name).join(', '))}</small></p>
       </section>
       <details class="filter-wrap" ${Object.values(f).some(Boolean) || matchMedia('(min-width: 720px)').matches ? 'open' : ''}>
       <summary>Filtrer les trajets</summary>
       <form class="filters" data-form="search">
         <div><label for="f-dir">Sens</label><select id="f-dir" name="dir">
-          <option value="">Tous</option><option value="out" ${f.dir === 'out' ? 'selected' : ''}>France → Maghreb</option>
-          <option value="back" ${f.dir === 'back' ? 'selected' : ''}>Maghreb → France</option></select></div>
+          <option value="">Tous</option><option value="out" ${f.dir === 'out' ? 'selected' : ''}>Départ de France</option>
+          <option value="back" ${f.dir === 'back' ? 'selected' : ''}>Arrivée en France</option></select></div>
         <div><label for="f-country">Pays</label><select id="f-country" name="country">
-          <option value="">Tous</option>${['DZ', 'MA', 'TN'].map((c) => `<option value="${c}" ${f.country === c ? 'selected' : ''}>${COUNTRIES[c]}</option>`).join('')}</select></div>
+          <option value="">Tous</option>${countryOptions(f.country)}</select></div>
         <div><label for="f-mode">Transport</label><select id="f-mode" name="mode"><option value="">Tous</option>${opts(MODES, f.mode)}</select></div>
         <div><label for="f-date">À partir du</label><input id="f-date" type="date" name="date" value="${esc(f.date)}"></div>
         <div class="wide"><label for="f-city">Ville</label><input id="f-city" name="city" list="dl-all" placeholder="Marseille, Alger…" value="${esc(f.city)}" autocomplete="off"></div>
         <div class="wide"><button class="btn block" type="submit">Rechercher</button></div>
-        <datalist id="dl-all">${[...CITIES_FR, ...CITIES_MG].map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
+        <datalist id="dl-all">${cityOptions(Object.values(CITIES).flat())}</datalist>
       </form></details>
       <div id="results" class="stack" aria-live="polite">${skeleton()}</div>`);
     await loadResults();
@@ -357,27 +373,26 @@
   async function viewPublish() {
     if (!requireAuth()) return;
     const tp = S.traveler;
-    const dl = `<datalist id="dl-fr">${CITIES_FR.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
-                <datalist id="dl-mg">${CITIES_MG.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>`;
+    const dl = `<datalist id="dl-fr">${cityOptions(citiesOf(HOME))}</datalist><datalist id="dl-ext"></datalist>`;
     setMain(`
       <h1>Publier un trajet</h1>
-      <p class="muted">Vous voyagez bientôt entre la France et le Maghreb ? Proposez la place qu’il vous reste.</p>
+      <p class="muted">Vous voyagez bientôt depuis ou vers la France ? Proposez la place qu’il vous reste.</p>
       ${!tp ? `<div class="notice warn">Complétez d’abord votre <a href="#/profile">profil voyageur</a> (pièce d’identité, et plaque + permis si vous roulez). Vous pourrez ensuite publier.</div>` : ''}
       <form class="card" data-form="publish">
-        <div class="two">
+        <div class="two dates">
           <div class="field"><label for="p-mode">Transport</label><select id="p-mode" name="transport_mode" required>${opts(MODES)}</select></div>
-          <div class="field"><label for="p-dir">Sens</label><select id="p-dir" name="dir"><option value="out">France → Maghreb</option><option value="back">Maghreb → France</option></select></div>
+          <div class="field"><label for="p-dir">Sens</label><select id="p-dir" name="dir"><option value="out">Départ de France</option><option value="back">Arrivée en France</option></select></div>
         </div>
-        <div class="field" id="p-cwrap"><label for="p-country">Pays au Maghreb</label><select id="p-country" name="country">${['DZ', 'MA', 'TN'].map((c) => `<option value="${c}">${COUNTRIES[c]}</option>`).join('')}</select></div>
+        <div class="field" id="p-cwrap"><label for="p-country" id="p-cl">Pays de destination</label><select id="p-country" name="country">${countryOptions()}</select></div>
         <div class="two">
           <div class="field"><label for="p-oc" id="p-oc-l">Ville de départ</label><input id="p-oc" name="origin_city" list="dl-fr" required autocomplete="off"></div>
-          <div class="field"><label for="p-dc" id="p-dc-l">Ville d’arrivée</label><input id="p-dc" name="dest_city" list="dl-mg" required autocomplete="off"></div>
+          <div class="field"><label for="p-dc" id="p-dc-l">Ville d’arrivée</label><input id="p-dc" name="dest_city" list="dl-ext" required autocomplete="off"></div>
         </div>
         <div class="two">
           <div class="field"><label for="p-op">Point de rendez-vous au départ</label><input id="p-op" name="origin_point" placeholder="Gare, port, aéroport…"></div>
           <div class="field"><label for="p-dp">Point de remise à l’arrivée</label><input id="p-dp" name="dest_point" placeholder="Port d’Alger, aéroport…"></div>
         </div>
-        <div class="two">
+        <div class="two dates">
           <div class="field"><label for="p-dep">Départ</label><input id="p-dep" type="datetime-local" name="departure_at" min="${localISO()}" required></div>
           <div class="field"><label for="p-arr">Arrivée (facultatif)</label><input id="p-arr" type="datetime-local" name="arrival_at" min="${localISO()}"></div>
         </div>
@@ -386,7 +401,7 @@
           <div class="field"><label for="p-pr">Prix par kg</label><input id="p-pr" name="price_per_kg" type="number" min="0" step="0.5" required></div>
         </div>
         <div class="two">
-          <div class="field"><label for="p-cur">Devise</label><select id="p-cur" name="currency"><option>EUR</option><option>DZD</option><option>MAD</option><option>TND</option></select></div>
+          <div class="field"><label for="p-cur">Devise</label><select id="p-cur" name="currency">${currencies().map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select></div>
           <div class="field"><label for="p-size">Taille maximale d’un colis</label><input id="p-size" name="max_item_size" placeholder="Ex. : 80 cm"></div>
         </div>
         <div class="field"><label for="p-notes">Informations utiles</label><textarea id="p-notes" name="notes" maxlength="600" placeholder="Horaires de remise, lieu de rendez-vous, conditions…"></textarea></div>
@@ -400,8 +415,10 @@
     const dir = document.getElementById('p-dir');
     if (!dir) return;
     const out = dir.value === 'out';
-    document.getElementById('p-oc').setAttribute('list', out ? 'dl-fr' : 'dl-mg');
-    document.getElementById('p-dc').setAttribute('list', out ? 'dl-mg' : 'dl-fr');
+    document.getElementById('dl-ext').innerHTML = cityOptions(citiesOf(document.getElementById('p-country').value));
+    document.getElementById('p-oc').setAttribute('list', out ? 'dl-fr' : 'dl-ext');
+    document.getElementById('p-dc').setAttribute('list', out ? 'dl-ext' : 'dl-fr');
+    document.getElementById('p-cl').textContent = out ? 'Pays de destination' : 'Pays de départ';
   }
 
   /* ------------------------------------------------------------------ */
@@ -690,7 +707,7 @@
       if (error) { toast(friendly(error), 'error'); route(); return; }
       toast('Statut du trajet mis à jour');
     }
-    if (el.id === 'p-dir') syncPublishDir();
+    if (el.id === 'p-dir' || el.id === 'p-country') syncPublishDir();
   });
 
   document.addEventListener('input', (e) => {
@@ -872,8 +889,18 @@
   /* ------------------------------------------------------------------ */
   /* Démarrage                                                          */
   /* ------------------------------------------------------------------ */
+  async function loadCountries() {
+    try {
+      const { data, error } = await sb.from('countries').select('code, name, currency, sort').eq('active', true).order('sort');
+      if (!error && data && data.length) {
+        COUNTRY_LIST = data;
+        COUNTRIES = Object.fromEntries(data.map((c) => [c.code, c.name]));
+      }
+    } catch (e) { /* on garde la liste de secours */ }
+  }
+
   async function init() {
-    await loadMe();
+    await Promise.all([loadMe(), loadCountries()]);
     renderShell();
     subscribeRealtime();
 
